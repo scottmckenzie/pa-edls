@@ -1,0 +1,52 @@
+name: Generate EDLs
+
+on:
+  schedule:
+    - cron: "33 15 * * *" # daily, 15:33 UTC (off the hour to avoid scheduler congestion)
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Bypass the max_shrink safety check"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: generate-edls
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Install
+        run: uv sync --locked
+
+      - name: Test
+        run: uv run pytest -q
+
+      - name: Generate
+        env:
+          EDL_BRANCH: ${{ github.ref_name }}
+        run: uv run pa-edl generate ${{ inputs.force && '--force' || '' }}
+
+      # Generated data is pushed straight to main (code changes still go through PRs).
+      # Requires a branch ruleset bypass for github-actions[bot]; see README.
+      - name: Commit changes
+        run: |
+          git add -A edls
+          if git diff --cached --quiet; then
+            echo "No EDL changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(edls): update EDLs $(date -u +%Y-%m-%d)" -m "$(git diff --cached --stat | tail -1)"
+          git push

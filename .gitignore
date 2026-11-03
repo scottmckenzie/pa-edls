@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+build/
+dist/
+.cache/
+.coverage
+htmlcov/
+.claude/hooks/audit.log

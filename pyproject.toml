@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pa-edl"
+version = "0.1.0"
+description = "Generate Palo Alto Networks External Dynamic Lists from cloud provider IP range feeds"
+readme = "README.md"
+requires-python = ">=3.15"
+dependencies = []
+
+[project.scripts]
+pa-edl = "pa_edl.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[dependency-groups]
+dev = [
+    "coverage>=7.17.0",
+    "pyrefly>=1.4.0",
+    "pytest>=9.2.0",
+    "ruff>=0.17.3",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.pyrefly]
+project-includes = ["src", "tests"]
+search-path = ["src", "tests"]
+
+[tool.coverage.run]
+source = ["pa_edl"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true

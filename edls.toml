@@ -1,0 +1,28 @@
+# EDL definitions. Each [[edl]] table produces one or more list files under
+# the output directory, one file per IP version:
+#   <output_dir>/<provider>/<cloud>/<name>/<ipv4|ipv6>/<list>.txt
+#
+# Common keys (all providers):
+#   provider     - provider id (see `pa-edl providers`)
+#   cloud        - provider cloud/partition, also a path segment (default "public")
+#   name         - output folder name, unique per provider and cloud
+#   ip_versions  - which per-version lists to write: ["ipv4", "ipv6"] (default both)
+#   min_entries  - fail generation if a list has fewer entries, IPv4 + IPv6 combined (default 1)
+#
+# Everything else is provider-specific; see README.md.
+
+output_dir = "edls"
+
+# Maximum allowed shrink of an existing list in one run (0.5 = may lose at most
+# 50% of its entries). Protects firewalls from a truncated/bad upstream feed.
+# Override for a single run with `pa-edl generate --force`.
+max_shrink = 0.5
+
+[[edl]]
+provider = "azure"
+name = "storage"
+service = "Storage"          # Azure service tag name (e.g. Storage, Sql, AzureKeyVault)
+cloud = "public"             # public | usgov | china
+split = "region"             # "region" = one list per region; "none" = one combined list
+include_global = true        # also write the global (all regions) list as _all.txt
+# regions = ["eastus", "westeurope"]   # optional allow-list; default = every region
