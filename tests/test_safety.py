@@ -153,3 +153,56 @@ def test_check_changes_skips_new_and_empty(tmp_path):
         )
         == []
     )
+
+
+@pytest.mark.parametrize(
+    "prefix",
+    ["192.88.99.0/24", "192.31.196.0/24", "192.175.48.0/24", "192.52.193.0/24", "192.88.0.0/16"],
+)
+def test_normalise_rejects_more_ipv4_special_purpose(prefix):
+    with pytest.raises(SafetyError, match="special-purpose"):
+        normalise([prefix], V)
+
+
+@pytest.mark.parametrize(
+    "prefix",
+    [
+        "2001::/32",  # Teredo
+        "2001:3::/32",  # AMT
+        "2001:4:112::/48",  # AS112
+        "2001:10::/28",  # ORCHID
+        "2001:20::/28",  # ORCHIDv2
+        "2002::/16",  # 6to4
+        "2002:c000:200::/40",  # inside 6to4
+        "2620:4f:8000::/48",  # AS112 direct delegation
+    ],
+)
+def test_normalise_rejects_more_ipv6_special_purpose(prefix):
+    with pytest.raises(SafetyError, match="special-purpose"):
+        normalise([prefix], V)
+
+
+def test_normalise_accepts_rir_space_next_to_ietf_block():
+    # 2001:200::/23 is the first RIR allocation after the reserved 2001::/23.
+    assert normalise(["2001:200::/32"], V)["ipv6"] == ["2001:200::/32"]
+
+
+@pytest.mark.parametrize("target", ["README.md", "a/README.md", "manifest.json"])
+def test_validate_rejects_index_and_manifest_symlink_escape(target, tmp_path):
+    outside = tmp_path / "outside.txt"
+    outside.write_text("keep me\n")
+    out = tmp_path / "edls"
+    (out / "a").mkdir(parents=True)
+    (out / target).symlink_to(outside)
+    with pytest.raises(SafetyError, match="resolves outside"):
+        write_outputs([Output("a/x.txt", ["20.0.0.0/24"], "s")], out)
+    assert outside.read_text() == "keep me\n"
+    assert not (out / "a" / "x.txt").exists()
+
+
+def test_validate_rejects_in_tree_symlink_alias(tmp_path):
+    out = tmp_path / "edls"
+    (out / "a").mkdir(parents=True)
+    (out / "a" / "second.txt").symlink_to(out / "a" / "first.txt")
+    with pytest.raises(SafetyError, match="both be written"):
+        validate_outputs([Output("a/first.txt", [], "s"), Output("a/second.txt", [], "s")], out)

@@ -1,3 +1,4 @@
+import math
 import re
 import tomllib
 from dataclasses import dataclass, field
@@ -44,11 +45,11 @@ def load_config(path: Path) -> Config:
         output_dir = path.parent / output_dir
 
     max_shrink = float(raw.get("max_shrink", 0.5))
-    if not 0 <= max_shrink <= 1:
+    if not (math.isfinite(max_shrink) and 0 <= max_shrink <= 1):
         raise ConfigError("max_shrink must be between 0 and 1")
     max_growth = float(raw.get("max_growth", 2.0))
-    if max_growth < 1:
-        raise ConfigError("max_growth must be at least 1")
+    if not (math.isfinite(max_growth) and max_growth >= 1):
+        raise ConfigError("max_growth must be a finite number of at least 1")
 
     specs: list[EdlSpec] = []
     seen: set[str] = set()
