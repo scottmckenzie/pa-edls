@@ -10,8 +10,9 @@ on:
         type: boolean
         default: false
 
+# GITHUB_TOKEN only needs read: the push uses the GitHub App token below.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: generate-edls
@@ -22,7 +23,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      # GITHUB_TOKEN can't be a ruleset bypass actor, so push as a GitHub App that is.
+      # Setup: README.md -> "Repository setup".
+      - name: Get GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.EDL_APP_CLIENT_ID }}
+          private-key: ${{ secrets.EDL_APP_PRIVATE_KEY }}
+          permission-contents: write
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
 
@@ -38,15 +51,19 @@ jobs:
         run: uv run pa-edl generate ${{ inputs.force && '--force' || '' }}
 
       # Generated data is pushed straight to main (code changes still go through PRs).
-      # Requires a branch ruleset bypass for github-actions[bot]; see README.
+      # The GitHub App must be on the main ruleset's bypass list; see README.
       - name: Commit changes
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
         run: |
           git add -A edls
           if git diff --cached --quiet; then
             echo "No EDL changes."
             exit 0
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bot_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
           git commit -m "chore(edls): update EDLs $(date -u +%Y-%m-%d)" -m "$(git diff --cached --stat | tail -1)"
           git push

@@ -175,6 +175,23 @@ A provider only returns raw prefixes per list name. Validation, IP version filte
 
 ## Repository setup
 
-- **Settings → Actions → General → Workflow permissions** must allow *Read and write* (the workflow also declares `contents: write`).
-- Protect `main` with a ruleset: require a pull request with 1 approval and the CI checks. Add **GitHub Actions** (the `github-actions[bot]` integration) to the ruleset's bypass list. That lets the daily workflow push generated `edls/` changes directly, which keeps lists current without a daily review. All code changes still go through PRs.
-- GitHub disables scheduled workflows after 60 days without repository activity. Data commits count as activity, but if upstream data stops changing, re-enable the workflow from the Actions tab.
+The daily workflow pushes generated `edls/` changes straight to `main`, while all code changes go through PRs. GitHub doesn't allow the built-in `GITHUB_TOKEN` (`github-actions[bot]`) on a ruleset bypass list, so the workflow pushes as a small GitHub App that you own and add to the bypass list.
+
+1. **Create the app:** go to **Settings → Developer settings → GitHub Apps → New GitHub App**.
+   - Use any name, such as `pa-edl-bot`, and any homepage URL.
+   - Untick **Webhook → Active**.
+   - Under **Repository permissions**, set **Contents** to *Read and write*. Leave everything else at *No access*.
+   - Set **Where can this app be installed** to *Only on this account*.
+   - After creating it, note the **Client ID** and use **Generate a private key**, which downloads a `.pem` file.
+2. **Install the app** on this repository only: on the app's page, click **Install App**.
+3. **Store its credentials:** in this repository, go to **Settings → Secrets and variables → Actions**.
+   - Add a variable `EDL_APP_CLIENT_ID` containing the Client ID.
+   - Add a secret `EDL_APP_PRIVATE_KEY` containing the whole `.pem` file.
+4. **Protect `main`:** go to **Settings → Rules → Rulesets → New branch ruleset**, targeting the default branch.
+   - Require a pull request with 1 approval, and require the `test` status check (the job in `ci.yml`). It only appears in the picker after CI has run once.
+   - Under **Bypass list → Add bypass**, add the app and leave it on **Always allow**. "For pull requests only" would block the direct push.
+5. **Run it once:** run **Actions → Generate EDLs → Run workflow**. This fills in the raw URLs in the `edls/**/README.md` indexes.
+
+Commits from the workflow appear as `<app-name>[bot]`. Each run gets a short-lived app token, scoped to `contents: write` on this repository. The workflow's own `GITHUB_TOKEN` is read-only.
+
+GitHub disables scheduled workflows after 60 days without repository activity. Data commits count as activity, but if upstream data stops changing, re-enable the workflow from the Actions tab.
