@@ -8,6 +8,9 @@
 #   name         - output folder name, unique per provider and cloud
 #   ip_versions  - which per-version lists to write: ["ipv4", "ipv6"] (default both)
 #   min_entries  - fail generation if a list has fewer entries, IPv4 + IPv6 combined (default 1)
+#   min_prefixlen_ipv4 / min_prefixlen_ipv6
+#                - reject prefixes broader than this (default 8 / 16), so 0.0.0.0/0 or ::/0
+#                  from a bad feed can never reach a firewall
 #
 # Everything else is provider-specific; see README.md.
 
@@ -18,11 +21,16 @@ output_dir = "edls"
 # Override for a single run with `pa-edl generate --force`.
 max_shrink = 0.5
 
+# Maximum growth of an existing list's total address space in one run (2.0 =
+# may at most double). Catches a feed suddenly publishing much broader ranges.
+# Also overridden by --force.
+max_growth = 2.0
+
 [[edl]]
 provider = "azure"
 name = "storage"
 service = "Storage"          # Azure service tag name (e.g. Storage, Sql, AzureKeyVault)
 cloud = "public"             # public | usgov | china
-split = "region"             # "region" = one list per region; "none" = one combined list
+split = "region"             # "region" = one list per regional tag; "none" = one combined list
 include_global = true        # also write the global (all regions) list as _all.txt
-# regions = ["eastus", "westeurope"]   # optional allow-list; default = every region
+# regions = ["eastus", "westeurope"]   # optional allow-list of list names; default = every region

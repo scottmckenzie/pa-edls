@@ -2,15 +2,110 @@
   "changeNumber": 424,
   "cloud": "Public",
   "values": [
-    {"name": "Storage", "id": "Storage", "properties": {"changeNumber": 56, "region": "", "regionId": 0, "platform": "Azure", "systemService": "AzureStorage",
-      "addressPrefixes": ["13.65.107.32/28", "20.38.96.0/23", "20.38.98.0/23", "40.71.10.16/28", "2603:1030:209::/48"]}},
-    {"name": "StorageSyncService", "id": "StorageSyncService", "properties": {"changeNumber": 1, "region": "", "regionId": 0, "platform": "Azure", "systemService": "StorageSyncService",
-      "addressPrefixes": ["4.171.52.120/29"]}},
-    {"name": "Storage.EastUS", "id": "Storage.EastUS", "properties": {"changeNumber": 9, "region": "eastus", "regionId": 32, "platform": "Azure", "systemService": "AzureStorage",
-      "addressPrefixes": ["40.71.10.16/28", "20.38.98.0/23", "20.38.96.0/23", "2603:1030:209::/48"]}},
-    {"name": "Storage.WestEurope", "id": "Storage.WestEurope", "properties": {"changeNumber": 4, "region": "westeurope", "regionId": 18, "platform": "Azure", "systemService": "AzureStorage",
-      "addressPrefixes": ["13.65.107.32/28"]}},
-    {"name": "Sql.EastUS", "id": "Sql.EastUS", "properties": {"changeNumber": 2, "region": "eastus", "regionId": 32, "platform": "Azure", "systemService": "AzureSQL",
-      "addressPrefixes": ["52.168.0.0/24"]}}
+    {
+      "name": "Storage",
+      "id": "Storage",
+      "properties": {
+        "changeNumber": 56,
+        "region": "",
+        "regionId": 0,
+        "platform": "Azure",
+        "systemService": "AzureStorage",
+        "addressPrefixes": [
+          "13.65.107.32/28",
+          "20.38.96.0/23",
+          "20.38.98.0/23",
+          "40.71.10.16/28",
+          "2603:1030:209::/48"
+        ]
+      }
+    },
+    {
+      "name": "StorageSyncService",
+      "id": "StorageSyncService",
+      "properties": {
+        "changeNumber": 1,
+        "region": "",
+        "regionId": 0,
+        "platform": "Azure",
+        "systemService": "StorageSyncService",
+        "addressPrefixes": [
+          "4.171.52.120/29"
+        ]
+      }
+    },
+    {
+      "name": "Storage.EastUS",
+      "id": "Storage.EastUS",
+      "properties": {
+        "changeNumber": 9,
+        "region": "eastus",
+        "regionId": 32,
+        "platform": "Azure",
+        "systemService": "AzureStorage",
+        "addressPrefixes": [
+          "40.71.10.16/28",
+          "20.38.98.0/23",
+          "20.38.96.0/23",
+          "2603:1030:209::/48"
+        ]
+      }
+    },
+    {
+      "name": "Storage.WestEurope",
+      "id": "Storage.WestEurope",
+      "properties": {
+        "changeNumber": 4,
+        "region": "westeurope",
+        "regionId": 18,
+        "platform": "Azure",
+        "systemService": "AzureStorage",
+        "addressPrefixes": [
+          "13.65.107.32/28"
+        ]
+      }
+    },
+    {
+      "name": "Sql.EastUS",
+      "id": "Sql.EastUS",
+      "properties": {
+        "changeNumber": 2,
+        "region": "eastus",
+        "regionId": 32,
+        "platform": "Azure",
+        "systemService": "AzureSQL",
+        "addressPrefixes": [
+          "52.168.0.0/24"
+        ]
+      }
+    },
+    {
+      "name": "Storage.EastUSStage",
+      "id": "Storage.EastUSStage",
+      "properties": {
+        "changeNumber": 1,
+        "region": "eastus",
+        "regionId": 32,
+        "platform": "Azure",
+        "systemService": "AzureStorage",
+        "addressPrefixes": [
+          "52.239.152.0/24"
+        ]
+      }
+    },
+    {
+      "name": "Storage.FranceCentral",
+      "id": "Storage.FranceCentral",
+      "properties": {
+        "changeNumber": 1,
+        "region": "centralfrance",
+        "regionId": 40,
+        "platform": "Azure",
+        "systemService": "AzureStorage",
+        "addressPrefixes": [
+          "52.239.134.0/24"
+        ]
+      }
+    }
   ]
 }

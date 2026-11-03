@@ -2,23 +2,23 @@ import json
 
 import pytest
 
-from pa_edl.writer import MANIFEST, Output, check_shrink, normalise, write_outputs
+from pa_edl.writer import MANIFEST, Output, SafetyError, normalise, write_outputs
 
 
 def test_normalise_collapses_sorts_and_dedupes():
-    raw = ["10.0.1.0/24", "10.0.0.0/24", "10.0.0.0/24", "2001:db8::/33", "2001:db8:8000::/33", "10.0.0.5/32"]
-    assert normalise(raw, ("ipv4", "ipv6")) == {"ipv4": ["10.0.0.0/23"], "ipv6": ["2001:db8::/32"]}
+    raw = ["20.0.1.0/24", "20.0.0.0/24", "20.0.0.0/24", "2603:1000::/33", "2603:1000:8000::/33", "20.0.0.5/32"]
+    assert normalise(raw, ("ipv4", "ipv6")) == {"ipv4": ["20.0.0.0/23"], "ipv6": ["2603:1000::/32"]}
 
 
 def test_normalise_filters_versions():
-    raw = ["10.0.0.0/24", "2001:db8::/32"]
-    assert normalise(raw, ("ipv4",)) == {"ipv4": ["10.0.0.0/24"]}
-    assert normalise(raw, ("ipv6",)) == {"ipv6": ["2001:db8::/32"]}
-    assert normalise(["10.0.0.0/24"], ("ipv4", "ipv6")) == {"ipv4": ["10.0.0.0/24"], "ipv6": []}
+    raw = ["20.0.0.0/24", "2603:1000::/32"]
+    assert normalise(raw, ("ipv4",)) == {"ipv4": ["20.0.0.0/24"]}
+    assert normalise(raw, ("ipv6",)) == {"ipv6": ["2603:1000::/32"]}
+    assert normalise(["20.0.0.0/24"], ("ipv4", "ipv6")) == {"ipv4": ["20.0.0.0/24"], "ipv6": []}
 
 
 def test_normalise_rejects_garbage():
-    with pytest.raises(ValueError):
+    with pytest.raises(SafetyError):
         normalise(["not-an-ip"], ("ipv4",))
 
 
@@ -48,14 +48,6 @@ def test_dry_run_writes_nothing(tmp_path):
     changes = write_outputs([Output("a/b/c.txt", ["10.0.0.0/24"], "s")], out, dry_run=True)
     assert changes["added"] == ["a/b/c.txt"]
     assert not out.exists()
-
-
-def test_check_shrink(tmp_path):
-    out = tmp_path / "edls"
-    write_outputs([Output("a/b/c.txt", [f"10.0.{i}.0/24" for i in range(0, 20, 2)], "s")], out)
-    assert check_shrink([Output("a/b/c.txt", ["10.0.0.0/24"] * 6, "s")], out, 0.5) == []
-    assert check_shrink([Output("a/b/c.txt", ["10.0.0.0/24"] * 4, "s")], out, 0.5) == ["a/b/c.txt: 10 -> 4 entries"]
-    assert check_shrink([Output("a/b/new.txt", [], "s")], out, 0.5) == []
 
 
 def test_directory_readmes(tmp_path, monkeypatch):

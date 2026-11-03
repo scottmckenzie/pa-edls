@@ -3,14 +3,19 @@
 Microsoft publishes the full service tag list as a weekly JSON file whose URL
 changes with every release, so the current URL is discovered from the download
 page. Regional tags are named "<Service>.<Region>" (e.g. Storage.EastUS) and
-carry the lowercase region id (e.g. "eastus") in properties.region.
+have a non-empty properties.region.
+
+Each regional tag becomes its own list, named after the tag's suffix in
+lowercase (Storage.FranceCentral -> francecentral). properties.region is not
+used for naming: it is sometimes a legacy id ("centralfrance"), and several tags
+can share one (Storage.EastUS2 and Storage.EastUS2Stage are both "eastus2").
 
 Spec keys:
   service         service tag name, e.g. "Storage", "Sql", "AzureKeyVault" (required)
   cloud           public | usgov | china (default public)
   split           "region" (one list per region) | "none" (one combined list)
   include_global  with split=region, also write the service-wide list as _all (default true)
-  regions         optional list of region ids to include, e.g. ["eastus", "westeurope"]
+  regions         optional list names to include, e.g. ["eastus", "westeurope"] (case-insensitive)
   url             optional explicit ServiceTags JSON URL (skips page discovery)
 """
 
@@ -80,7 +85,12 @@ class AzureProvider(Provider):
             if name == service:
                 global_tag = tag
             elif name.startswith(service + ".") and props.get("region"):
-                regional[props["region"].lower()] = tag
+                list_name = name[len(service) + 1 :].lower()
+                if list_name in regional:
+                    raise RuntimeError(
+                        f"azure: tags {regional[list_name]['name']} and {name} both map to list {list_name!r}"
+                    )
+                regional[list_name] = tag
 
         if global_tag is None and not regional:
             raise ConfigError(f"azure: service tag {service!r} not found in {feed_name}")

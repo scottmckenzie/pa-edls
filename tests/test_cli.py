@@ -36,6 +36,9 @@ def test_min_entries_enforced(tmp_path, azure_fetcher):
         ('[[edl]]\nprovider = "nope"\nname = "x"\n', "unknown provider"),
         ('[[edl]]\nprovider = "azure"\nname = "Bad Name"\n', "name"),
         ('[[edl]]\nprovider = "azure"\nname = "x"\nip_versions = ["ipv5"]\n', "ip_versions"),
+        ('[[edl]]\nprovider = "azure"\nname = "x"\nmin_prefixlen_ipv4 = 33\n', "min_prefixlen_ipv4"),
+        ('[[edl]]\nprovider = "azure"\nname = "x"\nmin_prefixlen_ipv6 = "16"\n', "min_prefixlen_ipv6"),
+        ('max_growth = 0.5\n[[edl]]\nprovider = "azure"\nname = "x"\n', "max_growth"),
         ('[[edl]]\nprovider = "azure"\nname = "x"\n[[edl]]\nprovider = "azure"\nname = "x"\n', "duplicate"),
         ("", "no \\[\\[edl\\]\\]"),
     ],
@@ -100,3 +103,23 @@ def test_lists_split_by_ip_version(tmp_path, azure_fetcher):
 def test_cloud_in_path(tmp_path, azure_fetcher):
     cfg = load_config(write_config(tmp_path, '[[edl]]\nprovider = "azure"\nname = "x"\ncloud = "usgov"\n'))
     assert cfg.edls[0].path == "azure/usgov/x"
+
+
+def test_unsafe_prefix_fails_run_and_writes_nothing(tmp_path, azure_fetcher, monkeypatch, capsys):
+    # A /22 in the fixture is broader than a configured /24 minimum: the run must fail cleanly.
+    monkeypatch.setattr("pa_edl.cli.Fetcher", lambda: azure_fetcher)
+    config = write_config(
+        tmp_path, '[[edl]]\nprovider = "azure"\nname = "s"\nservice = "Storage"\nmin_prefixlen_ipv4 = 24\n'
+    )
+    assert main(["generate", "-c", str(config)]) == 1
+    err = capsys.readouterr().err
+    assert "safety check failed" in err and "azure/public/s/" in err and "broader than" in err
+    assert not (tmp_path / "out").exists()
+
+
+def test_generate_refuses_large_growth(cli, tmp_path, capsys):
+    assert cli() == 0
+    eastus = tmp_path / "out/azure/public/storage/ipv4/eastus.txt"
+    eastus.write_text("40.71.10.16/28\n")  # baseline far smaller than the fixture's eastus list
+    assert cli() == 2
+    assert "grew" in capsys.readouterr().err

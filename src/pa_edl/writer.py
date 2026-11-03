@@ -9,12 +9,37 @@ moves when something else changed, so a no-op run yields a clean git tree.
 import ipaddress
 import json
 import os
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
 MANIFEST = "manifest.json"
 INDEX = "README.md"
+
+# Shortest prefix length accepted by default. Upstream feeds publish /16 IPv4 and
+# /47 IPv6 at their broadest; anything far shorter is almost certainly bad data
+# and would open (or close) a huge range on the firewall.
+DEFAULT_MIN_PREFIXLEN = {"ipv4": 8, "ipv6": 16}
+
+# Ranges that never belong in a public cloud provider's address list (RFC 6890
+# special-purpose, private, documentation, multicast, reserved). A prefix that
+# overlaps any of these is rejected, which also catches broad super-nets that
+# merely contain one.
+IPV4_BOGONS = [
+    ipaddress.IPv4Network(n)
+    for n in (
+        "0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16", "172.16.0.0/12",
+        "192.0.0.0/24", "192.0.2.0/24", "192.168.0.0/16", "198.18.0.0/15", "198.51.100.0/24",
+        "203.0.113.0/24", "224.0.0.0/4", "240.0.0.0/4",
+    )
+]  # fmt: skip
+# Only global unicast (2000::/3) is accepted for IPv6, minus these.
+IPV6_GLOBAL_UNICAST = ipaddress.IPv6Network("2000::/3")
+IPV6_BOGONS = [ipaddress.IPv6Network(n) for n in ("2001:2::/48", "2001:db8::/32", "3fff::/20")]
+
+# Every path segment of an output: lowercase, no leading dot (so no "." or "..").
+_SAFE_SEGMENT = re.compile(r"^[a-z0-9_][a-z0-9._-]*$")
 
 
 class SafetyError(RuntimeError):
@@ -28,8 +53,29 @@ class Output:
     source: str
 
 
-def normalise(prefixes: list[str], ip_versions: tuple[str, ...]) -> dict[str, list[str]]:
+def _check_prefix(net: ipaddress.IPv4Network | ipaddress.IPv6Network, min_prefixlen: dict[str, int]) -> None:
+    version = f"ipv{net.version}"
+    if net.prefixlen < min_prefixlen[version]:
+        raise SafetyError(f"{net} is broader than the /{min_prefixlen[version]} allowed for {version}")
+    if isinstance(net, ipaddress.IPv4Network):
+        bogon = next((b for b in IPV4_BOGONS if net.overlaps(b)), None)
+    elif not net.subnet_of(IPV6_GLOBAL_UNICAST):
+        raise SafetyError(f"{net} is outside IPv6 global unicast space {IPV6_GLOBAL_UNICAST}")
+    else:
+        bogon = next((b for b in IPV6_BOGONS if net.overlaps(b)), None)
+    if bogon is not None:
+        raise SafetyError(f"{net} overlaps special-purpose range {bogon}")
+
+
+def normalise(
+    prefixes: list[str],
+    ip_versions: tuple[str, ...],
+    min_prefixlen: dict[str, int] = DEFAULT_MIN_PREFIXLEN,
+) -> dict[str, list[str]]:
     """Validate, split by IP version, collapse overlaps, and sort.
+
+    Each prefix must be an exact network (no host bits set), no broader than
+    min_prefixlen, and outside special-purpose ranges; otherwise SafetyError.
 
     Returns {"ipv4": [...], "ipv6": [...]} restricted to ip_versions. A version
     with no prefixes maps to an empty list so its file (and URL) still exists.
@@ -37,7 +83,11 @@ def normalise(prefixes: list[str], ip_versions: tuple[str, ...]) -> dict[str, li
     v4: list[ipaddress.IPv4Network] = []
     v6: list[ipaddress.IPv6Network] = []
     for p in prefixes:
-        net = ipaddress.ip_network(p.strip(), strict=False)
+        try:
+            net = ipaddress.ip_network(p.strip(), strict=True)
+        except ValueError as exc:
+            raise SafetyError(f"invalid prefix {p!r}: {exc}") from exc
+        _check_prefix(net, min_prefixlen)
         if isinstance(net, ipaddress.IPv4Network):
             v4.append(net)
         else:
@@ -59,18 +109,55 @@ def _existing_lists(output_dir: Path) -> dict[str, Path]:
     return {p.relative_to(output_dir).as_posix(): p for p in output_dir.rglob("*.txt") if p.is_file()}
 
 
-def check_shrink(outputs: list[Output], output_dir: Path, max_shrink: float) -> list[str]:
-    """Return problems for lists that lost more than max_shrink of their entries."""
+def _address_count(entries: list[str]) -> int:
+    return sum(ipaddress.ip_network(e).num_addresses for e in entries)
+
+
+def check_changes(outputs: list[Output], output_dir: Path, max_shrink: float, max_growth: float) -> list[str]:
+    """Return problems for existing lists that changed suspiciously in one run.
+
+    A list may lose at most max_shrink of its entries, and its total address
+    space may grow at most max_growth times. New or previously empty lists have
+    no baseline; they are protected by the per-prefix checks in normalise().
+    """
     problems = []
     existing = _existing_lists(output_dir)
     for out in outputs:
         old = existing.get(out.relpath)
         if old is None:
             continue
-        old_count = sum(1 for line in old.read_text().splitlines() if line.strip())
-        if old_count and len(out.entries) < old_count * (1 - max_shrink):
-            problems.append(f"{out.relpath}: {old_count} -> {len(out.entries)} entries")
+        old_entries = [line.strip() for line in old.read_text().splitlines() if line.strip()]
+        if old_entries and len(out.entries) < len(old_entries) * (1 - max_shrink):
+            problems.append(f"{out.relpath}: shrank from {len(old_entries)} to {len(out.entries)} entries")
+        old_addrs = _address_count(old_entries)
+        new_addrs = _address_count(out.entries)
+        if old_addrs and new_addrs > old_addrs * max_growth:
+            problems.append(
+                f"{out.relpath}: address space grew {new_addrs / old_addrs:.1f}x ({old_addrs} -> {new_addrs})"
+            )
     return problems
+
+
+def validate_outputs(outputs: list[Output], output_dir: Path) -> None:
+    """Refuse unsafe or colliding output paths before anything is written.
+
+    List names can come from upstream feeds (e.g. Azure region ids), so every
+    path segment is restricted to a safe character set, duplicates are rejected,
+    and the resolved target must stay inside output_dir (which also rejects
+    symlinks pointing elsewhere).
+    """
+    root = output_dir.resolve()
+    seen: set[str] = set()
+    for out in outputs:
+        segments = out.relpath.split("/")
+        bad = next((seg for seg in segments if not _SAFE_SEGMENT.match(seg)), None)
+        if bad is not None:
+            raise SafetyError(f"unsafe path segment {bad!r} in output {out.relpath!r}")
+        if out.relpath in seen:
+            raise SafetyError(f"two lists would both be written to {out.relpath}")
+        seen.add(out.relpath)
+        if not (output_dir / out.relpath).resolve().is_relative_to(root):
+            raise SafetyError(f"output {out.relpath!r} resolves outside {output_dir}")
 
 
 def _raw_base_url() -> str | None:
@@ -126,6 +213,7 @@ def write_outputs(outputs: list[Output], output_dir: Path, dry_run: bool = False
 
     Returns a change summary of the lists.
     """
+    validate_outputs(outputs, output_dir)
     changes: dict[str, list[str]] = {"added": [], "updated": [], "removed": []}
     existing = _existing_lists(output_dir)
 
