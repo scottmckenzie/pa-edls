@@ -20,12 +20,46 @@ concurrency:
 
 jobs:
   generate:
+    # Only main (which requires reviewed PRs) may publish. The edl-publish
+    # environment holds the GitHub App credentials and is restricted to main
+    # too, so a workflow run from any other branch can't read them.
+    if: github.ref == 'refs/heads/main'
+    environment: edl-publish
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      # No credentials are left in .git/config: nothing before the push step
+      # (dependencies, generator) runs with write access to the repository.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      # Runtime dependencies only; tests and dev tooling run in CI, not here.
+      - name: Install
+        run: uv sync --locked --no-dev
+
+      - name: Generate
+        env:
+          EDL_BRANCH: ${{ github.ref_name }}
+        run: uv run --no-sync pa-edl generate ${{ inputs.force && '--force' || '' }}
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git add -A edls
+          if git diff --cached --quiet; then
+            echo "No EDL changes."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       # GITHUB_TOKEN can't be a ruleset bypass actor, so push as a GitHub App that is.
-      # Setup: README.md -> "Repository setup".
+      # The token is minted only now, right before it's used. Setup: README.md -> "Repository setup".
       - name: Get GitHub App token
+        if: steps.changes.outputs.changed == 'true'
         id: app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
@@ -33,37 +67,19 @@ jobs:
           private-key: ${{ secrets.EDL_APP_PRIVATE_KEY }}
           permission-contents: write
 
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          token: ${{ steps.app-token.outputs.token }}
-
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-
-      - name: Install
-        run: uv sync --locked
-
-      - name: Test
-        run: uv run pytest -q
-
-      - name: Generate
-        env:
-          EDL_BRANCH: ${{ github.ref_name }}
-        run: uv run pa-edl generate ${{ inputs.force && '--force' || '' }}
-
       # Generated data is pushed straight to main (code changes still go through PRs).
-      # The GitHub App must be on the main ruleset's bypass list; see README.
-      - name: Commit changes
+      # Git hooks are disabled so nothing planted in .git/hooks runs with the token.
+      - name: Commit and push
+        if: steps.changes.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
         run: |
-          git add -A edls
-          if git diff --cached --quiet; then
-            echo "No EDL changes."
-            exit 0
-          fi
           bot_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
           git config user.name "${APP_SLUG}[bot]"
           git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
-          git commit -m "chore(edls): update EDLs $(date -u +%Y-%m-%d)" -m "$(git diff --cached --stat | tail -1)"
-          git push
+          git -c core.hooksPath=/dev/null commit --no-verify \
+            -m "chore(edls): update EDLs $(date -u +%Y-%m-%d)" -m "$(git diff --cached --stat | tail -1)"
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c core.hooksPath=/dev/null -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            push origin HEAD:main

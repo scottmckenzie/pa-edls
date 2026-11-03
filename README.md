@@ -49,6 +49,7 @@ src/pa_edl/
 ```toml
 output_dir = "edls"
 max_shrink = 0.5        # refuse to write if any list loses more than 50% of its entries
+max_growth = 2.0        # ...or if its total address space more than doubles
 
 [[edl]]
 provider = "azure"
@@ -65,6 +66,8 @@ Keys every `[[edl]]` accepts:
 | `name` | required | output folder name. Lowercase `[a-z0-9._-]`, unique per provider and cloud |
 | `ip_versions` | `["ipv4", "ipv6"]` | which per-version lists to write (`ipv4/`, `ipv6/` folders) |
 | `min_entries` | `1` | fail the run if a list (IPv4 + IPv6 combined, per region) has fewer entries than this |
+| `min_prefixlen_ipv4` | `8` | reject IPv4 prefixes broader than this (e.g. `/7`, `/0`) |
+| `min_prefixlen_ipv6` | `16` | reject IPv6 prefixes broader than this |
 
 ### `azure`
 
@@ -74,10 +77,12 @@ Keys every `[[edl]]` accepts:
 | `cloud` | `public` | `public`, `usgov` or `china` (Azure Government, Azure China) |
 | `split` | `region` | `region` writes one list per region. `none` writes a single `_all.txt` |
 | `include_global` | `true` | with `split = "region"` and no `regions` filter, also writes the service-wide tag as `_all.txt` |
-| `regions` | all | allow-list of region ids such as `["eastus", "westeurope"]`. An unknown region fails the run |
+| `regions` | all | allow-list of list names such as `["eastus", "westeurope"]` (case-insensitive). An unknown name fails the run |
 | `url` | discovered | pins a specific `ServiceTags_*.json` URL |
 
 The ServiceTags JSON URL changes with every weekly release, so the provider discovers the current one from the Microsoft download page.
+
+Each regional tag becomes its own list, named after the tag in lowercase: `Storage.FranceCentral` becomes `francecentral.txt`, and `Storage.EastUS2Stage` becomes `eastus2stage.txt`. The tag's `region` property isn't used for naming. It is sometimes a legacy id (`centralfrance`), and staging tags share it with the main tag (`Storage.EastUS2` and `Storage.EastUS2Stage` are both `eastus2`).
 
 More examples:
 
@@ -101,12 +106,14 @@ split = "none"
 
 ## Safety
 
-A bad upstream feed should not empty your firewall's allow lists. Each run:
+These lists decide firewall policy, so a bad or tampered upstream feed must not empty them or open them up. Each run:
 
-- validates every prefix with Python's `ipaddress` module. Malformed input fails the run.
-- fails if a list is below `min_entries`, if a service or region is missing, or if the feed format is unexpected.
-- refuses to write if any existing list shrinks by more than `max_shrink`. To accept an expected large change, run the workflow manually with **force** checked, or run `pa-edl generate --force`.
-- fails the workflow without committing on any error, so the previous lists stay in place and GitHub emails the repo owner about the failed run.
+- **Downloads over HTTPS only.** Redirects to any other scheme are refused, and responses over 50 MB are rejected.
+- **Validates every prefix.** Each must be an exact network (no host bits set). It must be no broader than `min_prefixlen_ipv4`/`min_prefixlen_ipv6` (`/8` and `/16` by default, so `0.0.0.0/0` and `::/0` can never appear). It must not overlap private, loopback, link-local, documentation, multicast or reserved ranges, and IPv6 must be global unicast (`2000::/3`).
+- **Validates every output path.** List names come from the upstream feed, so each path segment is restricted to `[a-z0-9._-]` (no leading dot), two lists can't share a file, and nothing is written outside `edls/`.
+- **Fails on bad input:** a list below `min_entries`, a missing service or region, or an unexpected feed format.
+- **Refuses large changes to existing lists:** more than `max_shrink` of the entries lost, or total address space grown more than `max_growth` times. To accept an expected large change, run the workflow manually with **force** checked, or run `pa-edl generate --force`. `--force` skips only these two checks, never the per-prefix or path checks.
+- **Commits nothing on any error.** The previous lists stay in place, and GitHub emails the repo owner about the failed run.
 
 Unchanged runs produce no commit. Files and the manifest timestamp only change when list contents change.
 
@@ -184,14 +191,21 @@ The daily workflow pushes generated `edls/` changes straight to `main`, while al
    - Set **Where can this app be installed** to *Only on this account*.
    - After creating it, note the **Client ID** and use **Generate a private key**, which downloads a `.pem` file.
 2. **Install the app** on this repository only: on the app's page, click **Install App**.
-3. **Store its credentials:** in this repository, go to **Settings → Secrets and variables → Actions**.
-   - Add a variable `EDL_APP_CLIENT_ID` containing the Client ID.
-   - Add a secret `EDL_APP_PRIVATE_KEY` containing the whole `.pem` file.
+3. **Store its credentials in a protected environment:** go to **Settings → Environments → New environment** and name it `edl-publish`.
+   - Under **Deployment branches and tags**, choose **Selected branches and tags** and add `main` only.
+   - Add an environment variable `EDL_APP_CLIENT_ID` containing the Client ID.
+   - Add an environment secret `EDL_APP_PRIVATE_KEY` containing the whole `.pem` file.
+   - Don't also store them as repository-level secrets or variables, which any branch could read. If they're there from an earlier setup, delete them.
 4. **Protect `main`:** go to **Settings → Rules → Rulesets → New branch ruleset**, targeting the default branch.
    - Require a pull request with 1 approval, and require the `test` status check (the job in `ci.yml`). It only appears in the picker after CI has run once.
    - Under **Bypass list → Add bypass**, add the app and leave it on **Always allow**. "For pull requests only" would block the direct push.
 5. **Run it once:** run **Actions → Generate EDLs → Run workflow**. This fills in the raw URLs in the `edls/**/README.md` indexes.
 
-Commits from the workflow appear as `<app-name>[bot]`. Each run gets a short-lived app token, scoped to `contents: write` on this repository. The workflow's own `GITHUB_TOKEN` is read-only.
+Commits from the workflow appear as `<app-name>[bot]`. How the app's push access is contained:
+
+- **Only `main` can publish.** The job only runs on `main`, and the `edl-publish` environment only releases the app credentials to `main`. Someone with write access can't run a modified workflow from a branch to get them.
+- **The token exists only for the push.** It's minted just before the commit step and only when lists changed. It's scoped to `contents: write` on this repository and expires within an hour.
+- **Nothing else runs with write access.** The checkout leaves no credentials in `.git/config`, only runtime dependencies are installed (tests and dev tools run in CI), and git hooks are disabled for the commit and push.
+- **`GITHUB_TOKEN` is read-only.**
 
 GitHub disables scheduled workflows after 60 days without repository activity. Data commits count as activity, but if upstream data stops changing, re-enable the workflow from the Actions tab.

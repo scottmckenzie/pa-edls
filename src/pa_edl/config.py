@@ -5,9 +5,11 @@ from pathlib import Path
 from typing import Any
 
 from pa_edl.providers import REGISTRY, ConfigError
+from pa_edl.writer import DEFAULT_MIN_PREFIXLEN
 
 _SAFE_NAME = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 IP_VERSIONS = ("ipv4", "ipv6")
+_MAX_PREFIXLEN = {"ipv4": 32, "ipv6": 128}
 
 
 @dataclass
@@ -17,6 +19,7 @@ class EdlSpec:
     name: str
     ip_versions: tuple[str, ...]
     min_entries: int
+    min_prefixlen: dict[str, int]  # shortest prefix allowed per IP version
     options: dict[str, Any]  # full table, passed to the provider
 
     @property
@@ -28,6 +31,7 @@ class EdlSpec:
 class Config:
     output_dir: Path
     max_shrink: float
+    max_growth: float
     edls: list[EdlSpec] = field(default_factory=list)
 
 
@@ -42,6 +46,9 @@ def load_config(path: Path) -> Config:
     max_shrink = float(raw.get("max_shrink", 0.5))
     if not 0 <= max_shrink <= 1:
         raise ConfigError("max_shrink must be between 0 and 1")
+    max_growth = float(raw.get("max_growth", 2.0))
+    if max_growth < 1:
+        raise ConfigError("max_growth must be at least 1")
 
     specs: list[EdlSpec] = []
     seen: set[str] = set()
@@ -59,7 +66,13 @@ def load_config(path: Path) -> Config:
         versions = tuple(table.get("ip_versions", IP_VERSIONS))
         if not versions or any(v not in IP_VERSIONS for v in versions):
             raise ConfigError(f"{where}: ip_versions must be a non-empty subset of {list(IP_VERSIONS)}")
-        spec = EdlSpec(provider, cloud, name, versions, int(table.get("min_entries", 1)), dict(table))
+        min_prefixlen = {}
+        for v in IP_VERSIONS:
+            value = table.get(f"min_prefixlen_{v}", DEFAULT_MIN_PREFIXLEN[v])
+            if not isinstance(value, int) or not 1 <= value <= _MAX_PREFIXLEN[v]:
+                raise ConfigError(f"{where}: min_prefixlen_{v} must be an integer from 1 to {_MAX_PREFIXLEN[v]}")
+            min_prefixlen[v] = value
+        spec = EdlSpec(provider, cloud, name, versions, int(table.get("min_entries", 1)), min_prefixlen, dict(table))
         if spec.path in seen:
             raise ConfigError(f"{where}: duplicate EDL {spec.path}")
         seen.add(spec.path)
@@ -67,4 +80,4 @@ def load_config(path: Path) -> Config:
 
     if not specs:
         raise ConfigError(f"{path}: no [[edl]] entries defined")
-    return Config(output_dir, max_shrink, specs)
+    return Config(output_dir, max_shrink, max_growth, specs)
