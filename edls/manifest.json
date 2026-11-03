@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-03T09:52:10+00:00",
+  "generated_at": "2026-11-03T12:01:48+00:00",
   "lists": [
     {
       "path": "azure/public/storage/ipv4/australiacentral.txt",
@@ -62,16 +62,6 @@
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.BelgiumCentral"
     },
     {
-      "path": "azure/public/storage/ipv4/brazilse.txt",
-      "entries": 7,
-      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.BrazilSoutheast"
-    },
-    {
-      "path": "azure/public/storage/ipv6/brazilse.txt",
-      "entries": 1,
-      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.BrazilSoutheast"
-    },
-    {
       "path": "azure/public/storage/ipv4/brazilsouth.txt",
       "entries": 20,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.BrazilSouth"
@@ -80,6 +70,16 @@
       "path": "azure/public/storage/ipv6/brazilsouth.txt",
       "entries": 1,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.BrazilSouth"
+    },
+    {
+      "path": "azure/public/storage/ipv4/brazilsoutheast.txt",
+      "entries": 7,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.BrazilSoutheast"
+    },
+    {
+      "path": "azure/public/storage/ipv6/brazilsoutheast.txt",
+      "entries": 1,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.BrazilSoutheast"
     },
     {
       "path": "azure/public/storage/ipv4/canadacentral.txt",
@@ -100,16 +100,6 @@
       "path": "azure/public/storage/ipv6/canadaeast.txt",
       "entries": 1,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.CanadaEast"
-    },
-    {
-      "path": "azure/public/storage/ipv4/centralfrance.txt",
-      "entries": 16,
-      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.FranceCentral"
-    },
-    {
-      "path": "azure/public/storage/ipv6/centralfrance.txt",
-      "entries": 1,
-      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.FranceCentral"
     },
     {
       "path": "azure/public/storage/ipv4/centralindia.txt",
@@ -142,12 +132,12 @@
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.CentralUSEUAP"
     },
     {
-      "path": "azure/public/storage/ipv4/chilec.txt",
+      "path": "azure/public/storage/ipv4/chilecentral.txt",
       "entries": 6,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.ChileCentral"
     },
     {
-      "path": "azure/public/storage/ipv6/chilec.txt",
+      "path": "azure/public/storage/ipv6/chilecentral.txt",
       "entries": 1,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.ChileCentral"
     },
@@ -183,13 +173,13 @@
     },
     {
       "path": "azure/public/storage/ipv4/eastus2.txt",
-      "entries": 1,
-      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.EastUS2Stage"
+      "entries": 155,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.EastUS2"
     },
     {
       "path": "azure/public/storage/ipv6/eastus2.txt",
-      "entries": 0,
-      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.EastUS2Stage"
+      "entries": 2,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.EastUS2"
     },
     {
       "path": "azure/public/storage/ipv4/eastus2euap.txt",
@@ -202,6 +192,16 @@
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.EastUS2EUAP"
     },
     {
+      "path": "azure/public/storage/ipv4/eastus2stage.txt",
+      "entries": 1,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.EastUS2Stage"
+    },
+    {
+      "path": "azure/public/storage/ipv6/eastus2stage.txt",
+      "entries": 0,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.EastUS2Stage"
+    },
+    {
       "path": "azure/public/storage/ipv4/eastus3.txt",
       "entries": 12,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.EastUS3"
@@ -212,22 +212,52 @@
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.EastUS3"
     },
     {
-      "path": "azure/public/storage/ipv4/germanyn.txt",
+      "path": "azure/public/storage/ipv4/eastusstg.txt",
+      "entries": 7,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.EastUSSTG"
+    },
+    {
+      "path": "azure/public/storage/ipv6/eastusstg.txt",
+      "entries": 1,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.EastUSSTG"
+    },
+    {
+      "path": "azure/public/storage/ipv4/francecentral.txt",
+      "entries": 16,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.FranceCentral"
+    },
+    {
+      "path": "azure/public/storage/ipv6/francecentral.txt",
+      "entries": 1,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.FranceCentral"
+    },
+    {
+      "path": "azure/public/storage/ipv4/francesouth.txt",
+      "entries": 8,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.FranceSouth"
+    },
+    {
+      "path": "azure/public/storage/ipv6/francesouth.txt",
+      "entries": 1,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.FranceSouth"
+    },
+    {
+      "path": "azure/public/storage/ipv4/germanynorth.txt",
       "entries": 8,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.GermanyNorth"
     },
     {
-      "path": "azure/public/storage/ipv6/germanyn.txt",
+      "path": "azure/public/storage/ipv6/germanynorth.txt",
       "entries": 1,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.GermanyNorth"
     },
     {
-      "path": "azure/public/storage/ipv4/germanywc.txt",
+      "path": "azure/public/storage/ipv4/germanywestcentral.txt",
       "entries": 16,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.GermanyWestCentral"
     },
     {
-      "path": "azure/public/storage/ipv6/germanywc.txt",
+      "path": "azure/public/storage/ipv6/germanywestcentral.txt",
       "entries": 1,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.GermanyWestCentral"
     },
@@ -383,11 +413,21 @@
     },
     {
       "path": "azure/public/storage/ipv4/northcentralus.txt",
+      "entries": 66,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.NorthCentralUS"
+    },
+    {
+      "path": "azure/public/storage/ipv6/northcentralus.txt",
+      "entries": 4,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.NorthCentralUS"
+    },
+    {
+      "path": "azure/public/storage/ipv4/northcentralusstage.txt",
       "entries": 7,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.NorthCentralUSStage"
     },
     {
-      "path": "azure/public/storage/ipv6/northcentralus.txt",
+      "path": "azure/public/storage/ipv6/northcentralusstage.txt",
       "entries": 0,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.NorthCentralUSStage"
     },
@@ -412,22 +452,22 @@
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.NorthEurope"
     },
     {
-      "path": "azure/public/storage/ipv4/norwaye.txt",
+      "path": "azure/public/storage/ipv4/norwayeast.txt",
       "entries": 13,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.NorwayEast"
     },
     {
-      "path": "azure/public/storage/ipv6/norwaye.txt",
+      "path": "azure/public/storage/ipv6/norwayeast.txt",
       "entries": 1,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.NorwayEast"
     },
     {
-      "path": "azure/public/storage/ipv4/norwayw.txt",
+      "path": "azure/public/storage/ipv4/norwaywest.txt",
       "entries": 6,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.NorwayWest"
     },
     {
-      "path": "azure/public/storage/ipv6/norwayw.txt",
+      "path": "azure/public/storage/ipv6/norwaywest.txt",
       "entries": 1,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.NorwayWest"
     },
@@ -492,6 +532,16 @@
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.SouthCentralUS2"
     },
     {
+      "path": "azure/public/storage/ipv4/southcentralusstg.txt",
+      "entries": 4,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.SouthCentralUSSTG"
+    },
+    {
+      "path": "azure/public/storage/ipv6/southcentralusstg.txt",
+      "entries": 1,
+      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.SouthCentralUSSTG"
+    },
+    {
       "path": "azure/public/storage/ipv4/southeastasia.txt",
       "entries": 49,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.SoutheastAsia"
@@ -540,16 +590,6 @@
       "path": "azure/public/storage/ipv6/southeastus5.txt",
       "entries": 1,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.SoutheastUS5"
-    },
-    {
-      "path": "azure/public/storage/ipv4/southfrance.txt",
-      "entries": 8,
-      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.FranceSouth"
-    },
-    {
-      "path": "azure/public/storage/ipv6/southfrance.txt",
-      "entries": 1,
-      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.FranceSouth"
     },
     {
       "path": "azure/public/storage/ipv4/southindia.txt",
@@ -602,22 +642,22 @@
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.SwedenSouth"
     },
     {
-      "path": "azure/public/storage/ipv4/switzerlandn.txt",
+      "path": "azure/public/storage/ipv4/switzerlandnorth.txt",
       "entries": 11,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.SwitzerlandNorth"
     },
     {
-      "path": "azure/public/storage/ipv6/switzerlandn.txt",
+      "path": "azure/public/storage/ipv6/switzerlandnorth.txt",
       "entries": 1,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.SwitzerlandNorth"
     },
     {
-      "path": "azure/public/storage/ipv4/switzerlandw.txt",
+      "path": "azure/public/storage/ipv4/switzerlandwest.txt",
       "entries": 8,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.SwitzerlandWest"
     },
     {
-      "path": "azure/public/storage/ipv6/switzerlandw.txt",
+      "path": "azure/public/storage/ipv6/switzerlandwest.txt",
       "entries": 1,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.SwitzerlandWest"
     },
@@ -680,26 +720,6 @@
       "path": "azure/public/storage/ipv6/ukwest.txt",
       "entries": 1,
       "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.UKWest"
-    },
-    {
-      "path": "azure/public/storage/ipv4/usstagec.txt",
-      "entries": 4,
-      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.SouthCentralUSSTG"
-    },
-    {
-      "path": "azure/public/storage/ipv6/usstagec.txt",
-      "entries": 1,
-      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.SouthCentralUSSTG"
-    },
-    {
-      "path": "azure/public/storage/ipv4/usstagee.txt",
-      "entries": 7,
-      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.EastUSSTG"
-    },
-    {
-      "path": "azure/public/storage/ipv6/usstagee.txt",
-      "entries": 1,
-      "source": "Azure ServiceTags_Public_20261026.json (changeNumber 424), tag Storage.EastUSSTG"
     },
     {
       "path": "azure/public/storage/ipv4/westcentralus.txt",
