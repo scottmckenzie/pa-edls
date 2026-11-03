@@ -22,21 +22,47 @@ INDEX = "README.md"
 # and would open (or close) a huge range on the firewall.
 DEFAULT_MIN_PREFIXLEN = {"ipv4": 8, "ipv6": 16}
 
-# Ranges that never belong in a public cloud provider's address list (RFC 6890
-# special-purpose, private, documentation, multicast, reserved). A prefix that
-# overlaps any of these is rejected, which also catches broad super-nets that
-# merely contain one.
+# Ranges that never belong in a public cloud provider's address list: the IANA
+# special-purpose registries (RFC 6890 and later: private, shared, documentation,
+# benchmarking, 6to4 relay, AS112, AMT, reserved) plus multicast. Some of these
+# are globally reachable (AS112, AMT) but are anycast services no cloud provider
+# owns. A prefix that overlaps any of these is rejected, which also catches broad
+# super-nets that merely contain one.
 IPV4_BOGONS = [
     ipaddress.IPv4Network(n)
     for n in (
-        "0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16", "172.16.0.0/12",
-        "192.0.0.0/24", "192.0.2.0/24", "192.168.0.0/16", "198.18.0.0/15", "198.51.100.0/24",
-        "203.0.113.0/24", "224.0.0.0/4", "240.0.0.0/4",
+        "0.0.0.0/8",        # "this network"
+        "10.0.0.0/8",       # private
+        "100.64.0.0/10",    # shared address space (CGNAT)
+        "127.0.0.0/8",      # loopback
+        "169.254.0.0/16",   # link-local
+        "172.16.0.0/12",    # private
+        "192.0.0.0/24",     # IETF protocol assignments
+        "192.0.2.0/24",     # documentation (TEST-NET-1)
+        "192.31.196.0/24",  # AS112-v4
+        "192.52.193.0/24",  # AMT
+        "192.88.99.0/24",   # deprecated 6to4 relay anycast
+        "192.168.0.0/16",   # private
+        "192.175.48.0/24",  # AS112 direct delegation
+        "198.18.0.0/15",    # benchmarking
+        "198.51.100.0/24",  # documentation (TEST-NET-2)
+        "203.0.113.0/24",   # documentation (TEST-NET-3)
+        "224.0.0.0/4",      # multicast
+        "240.0.0.0/4",      # reserved, including broadcast
     )
 ]  # fmt: skip
 # Only global unicast (2000::/3) is accepted for IPv6, minus these.
 IPV6_GLOBAL_UNICAST = ipaddress.IPv6Network("2000::/3")
-IPV6_BOGONS = [ipaddress.IPv6Network(n) for n in ("2001:2::/48", "2001:db8::/32", "3fff::/20")]
+IPV6_BOGONS = [
+    ipaddress.IPv6Network(n)
+    for n in (
+        "2001::/23",          # IETF protocol assignments: Teredo, benchmarking, AMT, AS112, ORCHID, DRIP
+        "2001:db8::/32",      # documentation
+        "2002::/16",          # 6to4
+        "2620:4f:8000::/48",  # AS112 direct delegation
+        "3fff::/20",          # documentation
+    )
+]  # fmt: skip
 
 # Every path segment of an output: lowercase, no leading dot (so no "." or "..").
 _SAFE_SEGMENT = re.compile(r"^[a-z0-9_][a-z0-9._-]*$")
@@ -138,26 +164,41 @@ def check_changes(outputs: list[Output], output_dir: Path, max_shrink: float, ma
     return problems
 
 
+def _index_dirs(relpaths: list[str]) -> set[str]:
+    """Every directory (relative to the output dir, "" is the root) that gets a README."""
+    dirs = {""}
+    for rel in relpaths:
+        parts = rel.split("/")[:-1]
+        dirs.update("/".join(parts[: i + 1]) for i in range(len(parts)))
+    return dirs
+
+
 def validate_outputs(outputs: list[Output], output_dir: Path) -> None:
     """Refuse unsafe or colliding output paths before anything is written.
 
     List names can come from upstream feeds (e.g. Azure region ids), so every
-    path segment is restricted to a safe character set, duplicates are rejected,
-    and the resolved target must stay inside output_dir (which also rejects
-    symlinks pointing elsewhere).
+    path segment is restricted to a safe character set. Every file the run
+    writes (lists, directory READMEs and the manifest) must resolve inside
+    output_dir, which rejects symlinks pointing elsewhere, and no two may
+    resolve to the same file, which rejects duplicates and in-tree symlink
+    aliases.
     """
-    root = output_dir.resolve()
-    seen: set[str] = set()
     for out in outputs:
-        segments = out.relpath.split("/")
-        bad = next((seg for seg in segments if not _SAFE_SEGMENT.match(seg)), None)
+        bad = next((seg for seg in out.relpath.split("/") if not _SAFE_SEGMENT.match(seg)), None)
         if bad is not None:
             raise SafetyError(f"unsafe path segment {bad!r} in output {out.relpath!r}")
-        if out.relpath in seen:
-            raise SafetyError(f"two lists would both be written to {out.relpath}")
-        seen.add(out.relpath)
-        if not (output_dir / out.relpath).resolve().is_relative_to(root):
-            raise SafetyError(f"output {out.relpath!r} resolves outside {output_dir}")
+
+    relpaths = [o.relpath for o in outputs]
+    targets = relpaths + [f"{d}/{INDEX}" if d else INDEX for d in sorted(_index_dirs(relpaths))] + [MANIFEST]
+    root = output_dir.resolve()
+    seen: dict[Path, str] = {}
+    for rel in targets:
+        resolved = (output_dir / rel).resolve()
+        if not resolved.is_relative_to(root):
+            raise SafetyError(f"output {rel!r} resolves outside {output_dir}")
+        if resolved in seen:
+            raise SafetyError(f"{seen[resolved]!r} and {rel!r} would both be written to {resolved}")
+        seen[resolved] = rel
 
 
 def _raw_base_url() -> str | None:
