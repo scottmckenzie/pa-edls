@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
-    paths-ignore: ["edls/**"]
+    paths-ignore: ["generated/**"]
 
 permissions:
   contents: read
