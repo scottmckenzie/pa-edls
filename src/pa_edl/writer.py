@@ -77,6 +77,7 @@ class Output:
     relpath: str  # e.g. "azure/storage/eastus.txt"
     entries: list[str]
     source: str
+    change: str | None = None  # upstream version of the list, shown in the directory README
 
 
 def _check_prefix(net: ipaddress.IPv4Network | ipaddress.IPv6Network, min_prefixlen: dict[str, int]) -> None:
@@ -236,12 +237,17 @@ def _render_indexes(output_dir_name: str, outputs: list[Output]) -> dict[str, st
             lines += [f"- [{sub}/]({sub}/README.md)" for sub in sorted(subdirs)]
         if d in files:
             header, sep = "| List | Entries |", "| --- | ---: |"
+            show_change = any(o.change is not None for o in files[d])
+            if show_change:
+                header, sep = header + " Change number |", sep + " ---: |"
             if base:
                 header, sep = header + " Raw URL |", sep + " --- |"
             lines += ["", "## Lists", "", header, sep]
             for out in sorted(files[d], key=lambda o: o.relpath):
                 filename = out.relpath.rsplit("/", 1)[-1]
                 row = f"| [{filename}]({filename}) | {len(out.entries)} |"
+                if show_change:
+                    row += f" {out.change or ''} |"
                 if base:
                     row += f" {base}/{output_dir_name}/{out.relpath} |"
                 lines.append(row)

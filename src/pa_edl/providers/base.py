@@ -22,6 +22,7 @@ class EdlList:
     name: str  # file stem, e.g. "eastus" -> eastus.txt
     prefixes: list[str]  # raw prefixes; normalised by the writer
     source: str  # human-readable provenance, recorded in the manifest
+    change: str | None = None  # upstream version of this list (e.g. Azure tag changeNumber), shown in READMEs
 
 
 class Provider(ABC):

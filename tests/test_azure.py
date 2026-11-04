@@ -103,3 +103,22 @@ def test_lists_named_by_tag_not_region_id(azure_fetcher):
     # Storage.FranceCentral's region id is the legacy "centralfrance"; the list uses the tag name.
     assert "centralfrance" not in lists
     assert "Storage.FranceCentral" in lists["francecentral"].source
+
+
+def test_lists_carry_tag_change_number(azure_fetcher):
+    lists = build(azure_fetcher)
+    assert lists["eastus"].change == "9"
+    assert lists["westeurope"].change == "4"
+    assert lists["_all"].change == "56"
+    assert build(azure_fetcher, split="none")["_all"].change == "56"
+    combined = build(azure_fetcher, split="none", regions=["eastus", "westeurope"])["_all"]
+    assert combined.change == "9, 4"
+
+
+def test_change_number_missing_is_none():
+    from conftest import FakeFetcher
+
+    doc = {"changeNumber": 1, "values": [{"name": "Storage", "properties": {"addressPrefixes": ["20.0.0.0/24"]}}]}
+    url = "https://download.microsoft.com/download/x/ServiceTags_Public_20261026.json"
+    lists = AzureProvider(cast(Fetcher, FakeFetcher({url: json.dumps(doc)}))).build({"service": "Storage", "url": url})
+    assert lists[0].change is None

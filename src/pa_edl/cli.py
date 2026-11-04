@@ -26,7 +26,7 @@ def build_outputs(config: Config, fetcher: Fetcher) -> list[Output]:
             if total < spec.min_entries:
                 raise ConfigError(f"{spec.path}/{lst.name}: {total} entries, below min_entries={spec.min_entries}")
             for version, entries in by_version.items():
-                outputs.append(Output(f"{spec.path}/{version}/{lst.name}.txt", entries, lst.source))
+                outputs.append(Output(f"{spec.path}/{version}/{lst.name}.txt", entries, lst.source, lst.change))
     return outputs
 
 

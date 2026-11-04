@@ -8,7 +8,7 @@ Currently supported:
 | --- | --- | --- |
 | `azure` | [Azure service tags](https://learn.microsoft.com/azure/virtual-network/service-tags-overview) (Public, US Gov, China) | per-region and global lists for any service tag (configured: `Storage`) |
 
-The current lists are browsable from [`generated/README.md`](generated/README.md). Every directory under `generated/` has a generated `README.md` listing its subdirectories and lists, with entry counts and raw URLs.
+The current lists are browsable from [`generated/README.md`](generated/README.md). Every directory under `generated/` has a generated `README.md` listing its subdirectories and lists, with entry counts, upstream change numbers and raw URLs.
 
 ## Using the lists in PAN-OS
 
@@ -83,6 +83,8 @@ Keys every `[[edl]]` accepts:
 The ServiceTags JSON URL changes with every weekly release, so the provider discovers the current one from the Microsoft download page.
 
 Each regional tag becomes its own list, named after the tag in lowercase: `Storage.FranceCentral` becomes `francecentral.txt`, and `Storage.EastUS2Stage` becomes `eastus2stage.txt`. The tag's `region` property isn't used for naming. It is sometimes a legacy id (`centralfrance`), and staging tags share it with the main tag (`Storage.EastUS2` and `Storage.EastUS2Stage` are both `eastus2`).
+
+The **Change number** column in each list README is the tag's own `changeNumber`, which Microsoft increments only when that tag's prefixes change. A combined list built from a `regions` filter shows each tag's number, comma-separated. The file-wide `changeNumber`, which goes up with every weekly release, is recorded in `manifest.json` as part of each list's `source`.
 
 More examples:
 
@@ -168,6 +170,8 @@ uv run coverage run -m pytest && uv run coverage report   # tests, fails below 8
 2. Import it in `src/pa_edl/providers/__init__.py`.
 3. Add tests with a trimmed fixture of the upstream feed in `tests/fixtures/` (see `tests/test_azure.py`). Keep total coverage at 80% or higher.
 4. Add `[[edl]]` entries to `edls.toml`.
+
+   `EdlList` also takes an optional `change` (a string), shown in the list README's **Change number** column. Set it if the feed versions each list; the column is left out of a directory where no list has one.
 5. Open a PR from a `feature/<description>` branch.
 
 A provider only returns raw prefixes per list name. Validation, IP version filtering, collapsing, sorting, safety checks and writing are shared. `self.fetcher` caches by URL, so several EDLs that read the same feed download it once.
