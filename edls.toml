@@ -28,6 +28,21 @@ max_growth = 2.0
 
 [[edl]]
 provider = "azure"
+name = "appservice"
+service = "AppService"
+
+[[edl]]
+provider = "azure"
+name = "keyvault"
+service = "AzureKeyVault"
+
+[[edl]]
+provider = "azure"
+name = "sql"
+service = "Sql"
+
+[[edl]]
+provider = "azure"
 name = "storage"
 service = "Storage"          # Azure service tag name (e.g. Storage, Sql, AzureKeyVault)
 cloud = "public"             # public | usgov | china
