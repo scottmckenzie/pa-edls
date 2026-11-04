@@ -40,7 +40,7 @@ def load_config(path: Path) -> Config:
     with path.open("rb") as f:
         raw = tomllib.load(f)
 
-    output_dir = Path(raw.get("output_dir", "edls"))
+    output_dir = Path(raw.get("output_dir", "generated"))
     if not output_dir.is_absolute():
         output_dir = path.parent / output_dir
 

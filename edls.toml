@@ -14,7 +14,7 @@
 #
 # Everything else is provider-specific; see README.md.
 
-output_dir = "edls"
+output_dir = "generated"
 
 # Maximum allowed shrink of an existing list in one run (0.5 = may lose at most
 # 50% of its entries). Protects firewalls from a truncated/bad upstream feed.

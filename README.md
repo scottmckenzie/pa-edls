@@ -8,14 +8,14 @@ Currently supported:
 | --- | --- | --- |
 | `azure` | [Azure service tags](https://learn.microsoft.com/azure/virtual-network/service-tags-overview) (Public, US Gov, China) | per-region and global lists for any service tag (configured: `Storage`) |
 
-The current lists are browsable from [`edls/README.md`](edls/README.md). Every directory under `edls/` has a generated `README.md` listing its subdirectories and lists, with entry counts and raw URLs.
+The current lists are browsable from [`generated/README.md`](generated/README.md). Every directory under `generated/` has a generated `README.md` listing its subdirectories and lists, with entry counts and raw URLs.
 
 ## Using the lists in PAN-OS
 
 1. **Objects → External Dynamic Lists → Add**
 2. Type: **IP List**
 3. Source: the raw URL of the list, for example
-   `https://raw.githubusercontent.com/<owner>/<repo>/main/edls/azure/public/storage/ipv4/eastus.txt`
+   `https://raw.githubusercontent.com/<owner>/<repo>/main/generated/azure/public/storage/ipv4/eastus.txt`
 
    IPv4 and IPv6 are separate lists. Add a second EDL for `.../ipv6/eastus.txt` if you need both.
 4. Repeat: **Daily** or **Hourly**. Upstream feeds change weekly at most, so daily is enough.
@@ -27,7 +27,7 @@ Each file has one CIDR per line, sorted, with no comments or headers. Overlappin
 
 ```
 edls.toml                    # which EDLs to build
-edls/                        # generated output (committed by the workflow; do not edit)
+generated/                   # generated output (committed by the workflow; do not edit)
   manifest.json              # every list with its entry count and upstream source/version
   **/README.md               # per-directory index: subdirectories, lists, entry counts, raw URLs
   <provider>/<cloud>/<name>/<ipv4|ipv6>/<list>.txt   # e.g. azure/public/storage/ipv4/eastus.txt
@@ -47,13 +47,13 @@ src/pa_edl/
 ## Configuration (`edls.toml`)
 
 ```toml
-output_dir = "edls"
+output_dir = "generated"
 max_shrink = 0.5        # refuse to write if any list loses more than 50% of its entries
 max_growth = 2.0        # ...or if its total address space more than doubles
 
 [[edl]]
 provider = "azure"
-name = "storage"        # output folder: edls/azure/public/storage/
+name = "storage"        # output folder: generated/azure/public/storage/
 service = "Storage"
 ```
 
@@ -95,7 +95,7 @@ service = "Sql"
 regions = ["eastus", "westeurope"]
 ip_versions = ["ipv4"]
 
-# Key Vault in Azure Government, as a single list (edls/azure/usgov/keyvault/ipv4/_all.txt, ...)
+# Key Vault in Azure Government, as a single list (generated/azure/usgov/keyvault/ipv4/_all.txt, ...)
 [[edl]]
 provider = "azure"
 name = "keyvault"
@@ -110,7 +110,7 @@ These lists decide firewall policy, so a bad or tampered upstream feed must not 
 
 - **Downloads over HTTPS only.** Redirects to any other scheme are refused, and responses over 50 MB are rejected.
 - **Validates every prefix.** Each must be an exact network (no host bits set). It must be no broader than `min_prefixlen_ipv4`/`min_prefixlen_ipv6` (`/8` and `/16` by default, so `0.0.0.0/0` and `::/0` can never appear). It must not overlap private, loopback, link-local, documentation, multicast or reserved ranges, and IPv6 must be global unicast (`2000::/3`).
-- **Validates every output path.** List names come from the upstream feed, so each path segment is restricted to `[a-z0-9._-]` (no leading dot), two lists can't share a file, and nothing is written outside `edls/`.
+- **Validates every output path.** List names come from the upstream feed, so each path segment is restricted to `[a-z0-9._-]` (no leading dot), two lists can't share a file, and nothing is written outside `generated/`.
 - **Fails on bad input:** a list below `min_entries`, a missing service or region, or an unexpected feed format.
 - **Refuses large changes to existing lists:** more than `max_shrink` of the entries lost, or total address space grown more than `max_growth` times. To accept an expected large change, run the workflow manually with **force** checked, or run `pa-edl generate --force`. `--force` skips only these two checks, never the per-prefix or path checks.
 - **Commits nothing on any error.** The previous lists stay in place, and GitHub emails the repo owner about the failed run.
@@ -182,7 +182,7 @@ A provider only returns raw prefixes per list name. Validation, IP version filte
 
 ## Repository setup
 
-The daily workflow pushes generated `edls/` changes straight to `main`, while all code changes go through PRs. GitHub doesn't allow the built-in `GITHUB_TOKEN` (`github-actions[bot]`) on a ruleset bypass list, so the workflow pushes as a small GitHub App that you own and add to the bypass list.
+The daily workflow pushes changes under `generated/` straight to `main`, while all code changes go through PRs. GitHub doesn't allow the built-in `GITHUB_TOKEN` (`github-actions[bot]`) on a ruleset bypass list, so the workflow pushes as a small GitHub App that you own and add to the bypass list.
 
 1. **Create the app:** go to **Settings → Developer settings → GitHub Apps → New GitHub App**.
    - Use any name, such as `pa-edl-bot`, and any homepage URL.
@@ -199,7 +199,7 @@ The daily workflow pushes generated `edls/` changes straight to `main`, while al
 4. **Protect `main`:** go to **Settings → Rules → Rulesets → New branch ruleset**, targeting the default branch.
    - Require a pull request with 1 approval, and require the `test` status check (the job in `ci.yml`). It only appears in the picker after CI has run once.
    - Under **Bypass list → Add bypass**, add the app and leave it on **Always allow**. "For pull requests only" would block the direct push.
-5. **Run it once:** run **Actions → Generate EDLs → Run workflow**. This fills in the raw URLs in the `edls/**/README.md` indexes.
+5. **Run it once:** run **Actions → Generate EDLs → Run workflow**. This fills in the raw URLs in the `generated/**/README.md` indexes.
 
 Commits from the workflow appear as `<app-name>[bot]`. How the app's push access is contained:
 
