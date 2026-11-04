@@ -107,20 +107,27 @@ class AzureProvider(Provider):
         def prefixes(tag: dict[str, Any]) -> list[str]:
             return list(tag.get("properties", {}).get("addressPrefixes", []))
 
+        def tag_change(*tags: dict[str, Any]) -> str | None:
+            # Per-tag changeNumber: only goes up when that tag's prefixes change.
+            numbers = [str(t["properties"]["changeNumber"]) for t in tags if "changeNumber" in t.get("properties", {})]
+            return ", ".join(numbers) or None
+
         lists: list[EdlList] = []
         if split == "region":
             for region in sorted(regional):
                 tag = regional[region]
-                lists.append(EdlList(region, prefixes(tag), src(tag)))
+                lists.append(EdlList(region, prefixes(tag), src(tag), tag_change(tag)))
             if spec.get("include_global", True) and global_tag is not None and wanted is None:
-                lists.append(EdlList(GLOBAL_LIST, prefixes(global_tag), src(global_tag)))
+                lists.append(EdlList(GLOBAL_LIST, prefixes(global_tag), src(global_tag), tag_change(global_tag)))
         else:  # none: one combined list
             if wanted is None:
                 if global_tag is None:
                     raise ConfigError(f'azure: {service} has no service-wide tag; set split = "region"')
-                lists.append(EdlList(GLOBAL_LIST, prefixes(global_tag), src(global_tag)))
+                lists.append(EdlList(GLOBAL_LIST, prefixes(global_tag), src(global_tag), tag_change(global_tag)))
             else:
-                combined = [p for r in sorted(regional) for p in prefixes(regional[r])]
-                tags = ", ".join(regional[r]["name"] for r in sorted(regional))
-                lists.append(EdlList(GLOBAL_LIST, combined, f"Azure {feed_name} (changeNumber {change}), tags {tags}"))
+                picked = [regional[r] for r in sorted(regional)]
+                combined = [p for t in picked for p in prefixes(t)]
+                tags = ", ".join(t["name"] for t in picked)
+                source = f"Azure {feed_name} (changeNumber {change}), tags {tags}"
+                lists.append(EdlList(GLOBAL_LIST, combined, source, tag_change(*picked)))
         return lists

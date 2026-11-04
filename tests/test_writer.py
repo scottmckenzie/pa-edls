@@ -85,3 +85,23 @@ def test_directory_readme_raw_urls(tmp_path, monkeypatch):
     ipv4 = (out / "azure/public/storage/ipv4/README.md").read_text()
     url = "https://raw.githubusercontent.com/acme/edls/main/edls/azure/public/storage/ipv4/eastus.txt"
     assert f"| [eastus.txt](eastus.txt) | 1 | {url} |" in ipv4
+
+
+def test_directory_readme_change_column(tmp_path, monkeypatch):
+    monkeypatch.setenv("GITHUB_REPOSITORY", "acme/edls")
+    monkeypatch.setenv("EDL_BRANCH", "main")
+    out = tmp_path / "edls"
+    write_outputs(
+        [
+            Output("a/ipv4/eastus.txt", ["20.0.0.0/24"], "s", "61"),
+            Output("a/ipv4/westus.txt", ["20.0.1.0/24"], "s"),  # provider gave no change number
+            Output("b/ipv4/x.txt", ["20.0.2.0/24"], "s"),
+        ],
+        out,
+    )
+    a = (out / "a/ipv4/README.md").read_text()
+    assert "| List | Entries | Change number | Raw URL |" in a
+    assert "| [eastus.txt](eastus.txt) | 1 | 61 | https://" in a
+    assert "| [westus.txt](westus.txt) | 1 |  | https://" in a
+    # No list in the directory has a change number: no column.
+    assert "Change number" not in (out / "b/ipv4/README.md").read_text()
