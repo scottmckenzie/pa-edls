@@ -2,7 +2,7 @@ name: Generate EDLs
 
 on:
   schedule:
-    - cron: "33 15 * * *" # daily, 15:33 UTC (off the hour to avoid scheduler congestion)
+    - cron: "33 10 * * *" # daily, 10:33 UTC (off the hour to avoid scheduler congestion)
   workflow_dispatch:
     inputs:
       force:
